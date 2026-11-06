@@ -5,3 +5,5 @@ python-dotenv
 httpx
 trimesh
 numpy
+scipy
+matplotlib
