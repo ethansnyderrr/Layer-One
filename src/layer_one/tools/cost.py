@@ -37,6 +37,15 @@ def _color_match(wanted: str, available: list[str]) -> bool:
     return any(wanted in c or c in wanted for c in available)
 
 
+def _money(x: float) -> str:
+    return f"${x:.0f}" if x == int(x) else f"${x:.2f}"
+
+
+def price_text(low: float, high: float) -> str:
+    """The exact wording Layer One quotes, so it can't soften a range."""
+    return _money(low) if low == high else f"{_money(low)} to {_money(high)}"
+
+
 def library_options(volume_mm3, area_mm2, extents_mm, material=None, color=None, preferred=None) -> dict:
     """Which libraries can print this, at what estimated price, and which to recommend."""
     options, excluded = [], []
@@ -63,11 +72,15 @@ def library_options(volume_mm3, area_mm2, extents_mm, material=None, color=None,
                 "price_high": library_cost(grams * (1 + WEIGHT_MARGIN), name),
             })
         if printers:
+            low = min(p["price_low"] for p in printers)
+            high = max(p["price_high"] for p in printers)
             options.append({
                 "library": lib,
                 "printers": printers,
-                "price_low": min(p["price_low"] for p in printers),
-                "price_high": max(p["price_high"] for p in printers),
+                "price_low": low,
+                "price_high": high,
+                "price_text": price_text(low, high),
+                "colors_in_stock": {p["material"]: info["colors"][p["material"]] for p in printers},
                 "turnaround": info["turnaround"],
                 "contact": info["contact"],
             })

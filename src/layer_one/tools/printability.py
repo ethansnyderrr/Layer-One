@@ -54,6 +54,5 @@ def render_preview(mesh: trimesh.Trimesh, png_path: Path) -> None:
     ax.set_box_aspect(np.maximum(mesh.extents, 1e-6))
     ax.view_init(elev=25, azim=-60)
     ax.set_xlabel("X (mm)"); ax.set_ylabel("Y (mm)"); ax.set_zlabel("Z (mm)")
-    ax.set_title("Shown in print orientation", fontsize=9)
     fig.savefig(png_path, bbox_inches="tight")
     plt.close(fig)

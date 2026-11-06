@@ -32,7 +32,7 @@ Submission, staff review, and printing stay in the library's existing request sy
 - `src/layer_one/prompts/openscad.md`: rules for the behind-the-scenes call that writes the 3D design.
 
 ## Stack
-Python, Anthropic API (tool use), OpenSCAD, trimesh. Prototype hosted on a Proxmox homelab.
+Python, Anthropic API (tool use), FastAPI, OpenSCAD, trimesh. Prototype hosted on a Proxmox homelab.
 
 ## Setup
 1. Install OpenSCAD (`apt install openscad` on Debian).
@@ -40,13 +40,15 @@ Python, Anthropic API (tool use), OpenSCAD, trimesh. Prototype hosted on a Proxm
 3. Copy `.env.example` to `.env` and add your Anthropic API key. Never commit `.env`.
 
 ## Run
-- `python chat.py`: talk to Layer One in the terminal. Each design is saved in `output/`.
+- `python web.py`: start the web version, then open `http://<server IP>:8000`. Shows the preview and download buttons for each design.
+- `python chat.py`: the same conversation in the terminal, handy for quick testing. Each design is saved in `output/`.
 - `python tests/selftest.py`: free checks (no API calls) for cost, library picks, and design checks. Run after any change.
 
 ## Status
 - [x] Library constraints documented
 - [x] Generation spike (text → OpenSCAD → STL → preview → checks)
 - [x] Terminal chat with design, checks, pricing, and library recommendation
+- [x] Web chat page with preview picture and .stl/.scad downloads
 - [ ] Model search
-- [ ] Web front end (upright preview, spinnable 3D viewer)
-- [ ] Hosted on homelab
+- [ ] Upright preview and spinnable 3D viewer
+- [ ] Always-on hosting on the homelab (fixed IP, starts on boot)

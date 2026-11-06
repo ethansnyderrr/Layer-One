@@ -15,7 +15,19 @@ from layer_one.tools import cost, generate, printability
 
 DEFAULT_MODEL = "claude-sonnet-5-5"  # override with LAYER_ONE_MODEL in .env
 SYSTEM_PROMPT = (Path(__file__).resolve().parent / "prompts" / "layer_one.md").read_text()
-KICKOFF = "[A student just opened Layer One. Greet them.]"
+GREETING = (
+    "Hi, I'm Layer One, an AI guide for UA Libraries' 3D printing service. "
+    "What are you hoping to print today? Tell me what it is, what it's for, and any "
+    "measurements you have. The more detail, the better I can help."
+)
+
+
+def new_conversation() -> list:
+    """The greeting is fixed text, so a conversation starts without an API call."""
+    return [
+        {"role": "user", "content": "[A student just opened Layer One.]"},
+        {"role": "assistant", "content": GREETING},
+    ]
 
 TOOLS = [{
     "name": "design_part",
@@ -56,13 +68,8 @@ def design_part(client, brief, material=None, color=None, preferred_library=None
     printability.render_preview(mesh, out_dir / "preview.png")
 
     result = {
-        "folder": str(out_dir),
-        "files": {
-            "stl": str(stl_path),
-            "scad": str(out_dir / "model.scad"),
-            "preview": str(out_dir / "preview.png"),
-            "report": str(out_dir / "report.txt"),
-        },
+        "design_id": out_dir.name,
+        "files_shown_to_student": "The app shows the preview picture and download buttons for the .stl and .scad.",
         "checks": facts,
         "dimensions": generate.dimensions(scad),
         "unused_variables": generate.unused_variables(scad),
@@ -77,21 +84,25 @@ def design_part(client, brief, material=None, color=None, preferred_library=None
     return result
 
 
-def run_tool(client, name, args) -> tuple[dict, bool]:
+def run_tool(client, name, args, on_status=None) -> tuple[dict, bool]:
     """Returns (result, is_error)."""
     if name != "design_part":
         return {"error": f"Unknown tool {name}"}, True
-    print("\n  (designing...)")
+    if on_status:
+        on_status("designing")
     try:
         return design_part(client, **args), False
     except generate.GenerationError as e:
         return {"error": str(e)}, True
 
 
-def run_turn(client, messages) -> str:
-    """Sends the conversation to Claude, runs any tools it asks for, and returns its reply."""
+def run_turn(client, messages, on_status=None) -> list[dict]:
+    """Sends the conversation to Claude and runs any tools it asks for.
+
+    Returns the turn as a list of bubbles: {"text": ..., "designs": [folder names]}.
+    """
     model = os.getenv("LAYER_ONE_MODEL", DEFAULT_MODEL)
-    design_folders = []
+    bubbles, designs = [], []
     while True:
         response = client.messages.create(
             model=model, max_tokens=2000, system=SYSTEM_PROMPT, tools=TOOLS, messages=messages,
@@ -99,18 +110,16 @@ def run_turn(client, messages) -> str:
         messages.append({"role": "assistant", "content": response.content})
         text = "".join(b.text for b in response.content if b.type == "text").strip()
         if response.stop_reason != "tool_use":
-            # Save Layer One's plain-English write-up next to the files it describes.
-            for folder in design_folders:
-                (Path(folder) / "report.txt").write_text(text + "\n")
-            return text
+            bubbles.append({"text": text, "designs": designs})
+            return bubbles
         if text:
-            print(f"\nLayer One: {text}")
+            bubbles.append({"text": text, "designs": []})
         results = []
         for block in response.content:
             if block.type == "tool_use":
-                result, is_error = run_tool(client, block.name, block.input)
+                result, is_error = run_tool(client, block.name, block.input, on_status)
                 if not is_error:
-                    design_folders.append(result["folder"])
+                    designs.append(result["design_id"])
                 results.append({
                     "type": "tool_result", "tool_use_id": block.id,
                     "content": json.dumps(result), "is_error": is_error,
@@ -125,14 +134,10 @@ def main(client=None) -> None:
             sys.exit("ANTHROPIC_API_KEY isn't set. Add it to .env in the repo root.")
         client = anthropic.Anthropic()
 
-    print("Layer One (type 'quit' to leave)\n")
-    messages = [{"role": "user", "content": KICKOFF}]
+    print("Layer One terminal (type 'quit' to leave). For the full version, run: python web.py\n")
+    print(f"\nLayer One: {GREETING}\n")
+    messages = new_conversation()
     while True:
-        try:
-            reply = run_turn(client, messages)
-        except anthropic.APIError as e:
-            sys.exit(f"\nCouldn't reach Claude: {e}\nCheck the API key and LAYER_ONE_MODEL in .env.")
-        print(f"\nLayer One: {reply}\n")
         user = ""
         while not user:
             try:
@@ -143,6 +148,14 @@ def main(client=None) -> None:
         if user.lower() in {"quit", "exit"}:
             return
         messages.append({"role": "user", "content": user})
+        try:
+            bubbles = run_turn(client, messages, on_status=lambda s: print("\n  (designing...)"))
+        except anthropic.APIError as e:
+            sys.exit(f"\nCouldn't reach Claude: {e}\nCheck the API key and LAYER_ONE_MODEL in .env.")
+        for bubble in bubbles:
+            print(f"\nLayer One: {bubble['text']}\n")
+            for name in bubble["designs"]:
+                print(f"  [files saved in {OUTPUT_DIR / name}]\n")
 
 
 if __name__ == "__main__":

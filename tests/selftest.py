@@ -43,6 +43,11 @@ expect("ABS at Rodgers is Stratasys only", [p["printer"] for p in cost.library_o
 expect("too big for everything", cost.library_options(1e6, 1e5, [300, 300, 300])["recommended"], [])
 expect("250 mm cube: Rodgers only", [o["library"] for o in cost.library_options(1e6, 1e5, [250, 250, 250])["options"]], ["Rodgers"])
 
+expect("price text, single", r["options"][0]["price_text"], "$3")
+expect("price text, range", r["options"][2]["price_text"], "$3 to $13")
+expect("price text, cents", cost.price_text(10.89, 27.36), "$10.89 to $27.36")
+expect("Rodgers colors by material", sorted(r["options"][2]["colors_in_stock"]), ["ABS", "PLA"])
+
 # 4. Design checks
 skipped = """hole_d = 4.5; // screw hole (assumed)
 width = 20; // strap width

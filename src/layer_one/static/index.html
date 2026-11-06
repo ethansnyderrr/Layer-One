@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layer One: UA Libraries 3D printing guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --crimson: #9e1b32;
+    --crimson-text: #9e1b32;
+    --ink: #1f2328;
+    --muted: #5b6168;
+    --paper: #f6f7f8;
+    --surface: #ffffff;
+    --plate: #e4e7ea;
+    --line: #d5d9dd;
+    --mine: #f3e3e6;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --crimson: #b8263f;
+      --crimson-text: #ef7d8f;
+      --ink: #e8eaed;
+      --muted: #a3a9b0;
+      --paper: #16181b;
+      --surface: #1e2125;
+      --plate: #2a2e33;
+      --line: #383d43;
+      --mine: #3a2128;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; flex-direction: column;
+    background: var(--paper); color: var(--ink);
+    font: 17px/1.55 "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { width: 100%; max-width: 760px; margin: 0 auto; padding: 0 20px; }
+
+  header { padding: 28px 0 18px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  header h1 { margin: 0; font-size: 30px; line-height: 1.1; letter-spacing: -0.01em; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+  /* Signature: the first layers of a print stacking up under the name */
+  .layers { display: flex; flex-direction: column-reverse; gap: 3px; width: 132px; margin: 0 0 12px; }
+  .layers span { height: 3px; border-radius: 2px; background: var(--crimson); transform-origin: left; }
+  .layers span:nth-child(1) { opacity: 1; }
+  .layers span:nth-child(2) { opacity: .75; width: 96%; }
+  .layers span:nth-child(3) { opacity: .5; width: 90%; }
+  .layers span:nth-child(4) { opacity: .3; width: 82%; }
+  @media (prefers-reduced-motion: no-preference) {
+    .layers span { animation: lay .45s ease-out both; }
+    .layers span:nth-child(2) { animation-delay: .25s; }
+    .layers span:nth-child(3) { animation-delay: .5s; }
+    .layers span:nth-child(4) { animation-delay: .75s; }
+    @keyframes lay { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  }
+
+  main { flex: 1; overflow-y: auto; }
+  #log { padding: 24px 0 12px; display: flex; flex-direction: column; gap: 18px; }
+  .bot { border-left: 3px solid var(--crimson); padding: 2px 0 2px 16px; max-width: 68ch; }
+  .me { align-self: flex-end; max-width: 80%; background: var(--mine); padding: 10px 14px; border-radius: 14px 14px 4px 14px; }
+  .text { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .text a { color: var(--crimson-text); }
+  .note { color: var(--crimson-text); font-size: 15px; }
+  .status { color: var(--muted); font-size: 15px; }
+
+  .design { margin: 0 0 14px; background: var(--plate); border-radius: 10px; padding: 10px; }
+  .design img { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto; border-radius: 6px; background: #fff; }
+  .design figcaption { color: var(--muted); font-size: 14px; text-align: center; margin-top: 8px; }
+  .downloads { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .dl { display: flex; flex-direction: column; text-decoration: none; padding: 9px 16px; border-radius: 8px; border: 2px solid var(--crimson); }
+  .dl strong { font-size: 16px; }
+  .dl small { font-size: 13px; }
+  .dl.primary { background: var(--crimson); color: #fff; }
+  .dl.secondary { color: var(--crimson-text); }
+
+  footer { border-top: 1px solid var(--line); background: var(--surface); padding: 12px 0 16px; }
+  form { display: flex; gap: 10px; align-items: flex-end; }
+  textarea {
+    flex: 1; resize: none; max-height: 160px; font: inherit; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  button { font: inherit; font-weight: 700; color: #fff; background: var(--crimson); border: 0; border-radius: 10px; padding: 10px 20px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  :focus-visible { outline: 3px solid var(--crimson-text); outline-offset: 2px; }
+  textarea:focus-visible { outline: 2px solid var(--crimson-text); outline-offset: 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="layers" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <h1>Layer One</h1>
+    <p>Your guide to 3D printing at UA Libraries</p>
+  </div>
+</header>
+
+<main id="scroller">
+  <div class="wrap"><div id="log" aria-live="polite"></div></div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <form id="composer">
+      <textarea id="input" rows="1" aria-label="Message Layer One" placeholder="Message Layer One" disabled></textarea>
+      <button id="send" type="submit" disabled>Send</button>
+    </form>
+  </div>
+</footer>
+
+<script>
+const log = document.getElementById("log");
+const scroller = document.getElementById("scroller");
+const input = document.getElementById("input");
+const send = document.getElementById("send");
+let sessionId = null;
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function linkify(text) {
+  return escapeHtml(text).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)]/g,
+    url => `<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
+}
+
+function add(className, html) {
+  const el = document.createElement("div");
+  el.className = className;
+  el.innerHTML = html;
+  log.appendChild(el);
+  scroller.scrollTop = scroller.scrollHeight;
+  return el;
+}
+
+function previewHtml(d) {
+  return `<figure class="design">
+    <img src="${d.preview}" alt="Preview of the part Layer One designed">
+    <figcaption>Shown in print orientation, so it may look sideways.</figcaption>
+  </figure>`;
+}
+
+function downloadsHtml(d) {
+  return `<div class="downloads">
+    <a class="dl primary" href="${d.stl}" download><strong>Download .stl</strong><small>The file you submit</small></a>
+    <a class="dl secondary" href="${d.scad}" download><strong>Download .scad</strong><small>The editable design</small></a>
+  </div>`;
+}
+
+function showBubble(b) {
+  const el = add("bot", b.designs.map(previewHtml).join("") + `<div class="text">${linkify(b.text)}</div>`);
+  b.designs.forEach(d => el.insertAdjacentHTML("beforeend", downloadsHtml(d)));
+  el.querySelectorAll("img").forEach(img => img.addEventListener("load", () => { scroller.scrollTop = scroller.scrollHeight; }));
+}
+
+function setBusy(busy) {
+  input.disabled = busy;
+  send.disabled = busy;
+  if (!busy) input.focus();
+}
+
+async function post(url, body) {
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || "The server didn't respond. Check that Layer One is running.");
+  return data;
+}
+
+async function start() {
+  try {
+    const data = await post("/api/start");
+    sessionId = data.session_id;
+    showBubble({ text: data.greeting, designs: [] });
+    setBusy(false);
+  } catch (e) {
+    add("note", escapeHtml(e.message));
+  }
+}
+
+document.getElementById("composer").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const text = input.value.trim();
+  if (!text || !sessionId) return;
+  add("me", `<div class="text">${escapeHtml(text)}</div>`);
+  input.value = "";
+  input.style.height = "";
+  setBusy(true);
+  const status = add("status", "Layer One is thinking…");
+  const slow = setTimeout(() => { status.textContent = "Still working. Designing a part can take up to a minute."; }, 6000);
+  try {
+    const data = await post("/api/chat", { session_id: sessionId, message: text });
+    status.remove();
+    data.bubbles.forEach(showBubble);
+  } catch (e) {
+    status.remove();
+    add("note", escapeHtml(e.message));
+    input.value = text;
+  } finally {
+    clearTimeout(slow);
+    setBusy(false);
+  }
+});
+
+input.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    document.getElementById("composer").requestSubmit();
+  }
+});
+input.addEventListener("input", () => {
+  input.style.height = "";
+  input.style.height = input.scrollHeight + "px";
+});
+
+start();
+</script>
+</body>
+</html>
