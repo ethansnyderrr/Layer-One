@@ -14,6 +14,7 @@ Needs: OpenSCAD on PATH, `pip install -r requirements.txt`, and ANTHROPIC_API_KE
 
 import argparse
 import json
+import math
 import os
 import re
 import subprocess
@@ -78,7 +79,9 @@ Rules:
 - The result must be one connected solid that sits flat on z = 0.
 - Prefer shapes that print without supports. Keep walls at least 2 mm thick.
 - Use only built-in OpenSCAD features: no import(), include, use, or external libraries.
-- Set $fn = 64 for curved surfaces."""
+- Set $fn = 64 for curved surfaces.
+- Use every variable you define in the geometry. Never leave placeholder or empty blocks;
+  finish every feature your comments mention."""
 
 
 # --- Step 1: Claude writes OpenSCAD -------------------------------------------------
@@ -95,6 +98,24 @@ def ask_claude(messages: list) -> str:
         model=MODEL, max_tokens=4000, system=SYSTEM_PROMPT, messages=messages
     )
     return "".join(block.text for block in response.content if block.type == "text")
+
+
+def unused_variables(scad: str) -> list[str]:
+    """Top-level variables that are defined but never used, a sign Claude skipped a feature."""
+    code = re.sub(r"/\*.*?\*/", "", scad, flags=re.DOTALL)  # drop /* block */ comments
+    code = re.sub(r"//[^\n]*", "", code)                    # drop // line comments
+    names, depth, start = [], 0, 0
+    for i, ch in enumerate(code):  # split into top-level statements only
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+        if depth == 0 and (ch == ";" or ch == "}"):
+            m = re.match(r"\s*([A-Za-z_]\w*)\s*=(?!=)", code[start:i + 1])
+            if m:
+                names.append(m.group(1))
+            start = i + 1
+    return [n for n in names if len(re.findall(rf"\b{n}\b", code)) == 1]
 
 
 # --- Step 2: OpenSCAD renders the STL -----------------------------------------------
@@ -122,12 +143,21 @@ def generate(description: str, out_dir: Path) -> Path:
         reply = ask_claude(messages)
         scad_path.write_text(extract_scad(reply))
         ok, log = render_stl(scad_path, stl_path)
-        if ok:
+        unused = unused_variables(scad_path.read_text()) if ok else []
+        if ok and (not unused or attempt == MAX_ATTEMPTS):
+            if unused:
+                print(f"Warning: still unused after {MAX_ATTEMPTS} attempts: {', '.join(unused)}")
             return stl_path
-        print("OpenSCAD failed; sending the error back to Claude.")
+        if ok:
+            print(f"Unused variables ({', '.join(unused)}); asking Claude to finish the design.")
+            feedback = (f"These variables are defined but never used: {', '.join(unused)}. "
+                        "Use each one in the geometry, or remove it if it isn't needed.")
+        else:
+            print("OpenSCAD failed; sending the error back to Claude.")
+            feedback = f"OpenSCAD failed with this output. Fix the program.\n\n{log[-3000:]}"
         messages += [
             {"role": "assistant", "content": reply},
-            {"role": "user", "content": f"OpenSCAD failed with this output. Fix the program.\n\n{log[-3000:]}"},
+            {"role": "user", "content": feedback},
         ]
     sys.exit(f"No valid STL after {MAX_ATTEMPTS} attempts. Last OpenSCAD output:\n{log}")
 
@@ -178,6 +208,9 @@ def estimate_grams(mesh: trimesh.Trimesh, material: str) -> tuple[float, float]:
 # --- Step 5: cost (doc Sections 3 and 7) --------------------------------------------
 def library_cost(grams: float, printer: str) -> float:
     p = PRINTERS[printer]
+    # Tiers are written in whole grams, so round to the nearest gram first (30.4 -> 30, 30.5 -> 31).
+    # math.floor(x + 0.5) always rounds .5 up; Python's round() would send 30.5 down to 30.
+    grams = math.floor(grams + 0.5)
     for limit, price in p["tiers"]:
         if grams <= limit:  # 61 g counts as Medium until staff answer Q2
             return round(price + p["plate_fee"], 2)
@@ -257,6 +290,7 @@ def main() -> None:
         stl_path = generate(args.description, out_dir)
 
     report = check(stl_path)
+    report["unused_variables"] = unused_variables((out_dir / "model.scad").read_text())
     (out_dir / "report.json").write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))
     print(f"\nFiles in {out_dir}: model.scad, model.stl, preview.png, report.json")
