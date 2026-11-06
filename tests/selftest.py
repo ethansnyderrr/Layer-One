@@ -65,5 +65,11 @@ expect("ABS at Rodgers names the Stratasys", "Stratasys F270" in rodgers["printe
 expect("Stratasys note mentions the plate fee", "$8" in rodgers["printer_note"], True)
 expect("both Rodgers printers explained when either works", "two printers" in r["options"][2]["printer_note"], True)
 
+# 6. A color no library stocks still shows libraries, with a note
+pink = cost.library_options(*hook, color="pink")
+expect("pink: libraries still listed", [o["library"] for o in pink["options"]], ["Bruno", "Gorgas", "Rodgers"])
+expect("pink: says no library has it", "No library lists pink" in pink.get("color_note", ""), True)
+expect("too big still means too big, with a color", cost.library_options(1e6, 1e5, [300, 300, 300], color="pink")["recommended"], [])
+
 print(f"\n{'All checks passed.' if not failures else f'{failures} check(s) FAILED.'}")
 sys.exit(1 if failures else 0)

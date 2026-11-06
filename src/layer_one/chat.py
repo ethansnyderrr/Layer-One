@@ -19,7 +19,11 @@ from layer_one.tools import cost, generate, printability
 DEFAULT_MODEL = "claude-sonnet-5-5"  # override with LAYER_ONE_MODEL in .env
 SYSTEM_PROMPT = (Path(__file__).resolve().parent / "prompts" / "layer_one.md").read_text()
 GREETING = (
-    "Hi, I'm Layer One, an AI guide for UA Libraries' 3D printing service. "
+    "Hi, I'm Layer One, an AI guide for UA Libraries' 3D printing service. You don't need any "
+    "3D printing experience. I design simple, practical things from your description, like hooks, "
+    "stands, holders, organizers, clips, and keychains, and then walk you through getting them "
+    "printed. I can't make detailed figures or things that have to fit a device exactly, like "
+    "phone cases.\n\n"
     "What are you hoping to print today? Tell me what it is, what it's for, and any "
     "measurements you have. The more detail, the better I can help."
 )

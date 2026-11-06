@@ -63,6 +63,18 @@ def printer_note(lib: str, printers: list[dict]) -> str:
 
 def library_options(volume_mm3, area_mm2, extents_mm, material=None, color=None, preferred=None) -> dict:
     """Which libraries can print this, at what estimated price, and which to recommend."""
+    result = _library_options(volume_mm3, area_mm2, extents_mm, material, color, preferred)
+    if color and not result["options"]:
+        # No library stocks the color: show the options without it, rather than "can't print".
+        plain = _library_options(volume_mm3, area_mm2, extents_mm, material, None, preferred)
+        if plain["options"]:
+            plain["color_note"] = (f"No library lists {color} in stock, so these options are shown "
+                                   "without a color choice. The student can pick from colors_in_stock.")
+            return plain
+    return result
+
+
+def _library_options(volume_mm3, area_mm2, extents_mm, material, color, preferred) -> dict:
     options, excluded = [], []
     for lib, info in LIBRARIES.items():
         printers, reasons = [], []

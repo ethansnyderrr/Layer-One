@@ -68,7 +68,14 @@
   .text { white-space: pre-wrap; overflow-wrap: anywhere; }
   .text a { color: var(--crimson-text); }
   .note { color: var(--crimson-text); font-size: 15px; }
-  .status { color: var(--muted); font-size: 15px; }
+  .status { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 15px; }
+  .spinner {
+    flex: none; width: 20px; height: 20px; border-radius: 50%;
+    border: 3px solid var(--line); border-top-color: var(--crimson);
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 
   .design { margin: 0 0 14px; background: var(--plate); border-radius: 10px; padding: 10px; }
   .design img { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto; border-radius: 6px; background: #fff; }
@@ -156,7 +163,14 @@ function downloadsHtml(d) {
 function showBubble(b) {
   const el = add("bot", b.designs.map(previewHtml).join("") + `<div class="text">${linkify(b.text)}</div>`);
   b.designs.forEach(d => el.insertAdjacentHTML("beforeend", downloadsHtml(d)));
-  el.querySelectorAll("img").forEach(img => img.addEventListener("load", () => { scroller.scrollTop = scroller.scrollHeight; }));
+  return el;
+}
+
+function scrollToStart(el) {
+  // Long replies start above the fold, so bring their first line into view instead of their last.
+  const top = scroller.scrollTop + el.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 16;
+  const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  scroller.scrollTo({ top, behavior: smooth ? "smooth" : "auto" });
 }
 
 function setBusy(busy) {
@@ -191,12 +205,15 @@ document.getElementById("composer").addEventListener("submit", async (event) => 
   input.value = "";
   input.style.height = "";
   setBusy(true);
-  const status = add("status", "Layer One is thinking…");
-  const slow = setTimeout(() => { status.textContent = "Still working. Designing a part can take up to a minute."; }, 6000);
+  const status = add("status", `<span class="spinner" aria-hidden="true"></span><span class="status-text">Layer One is thinking…</span>`);
+  const slow = setTimeout(() => {
+    status.querySelector(".status-text").textContent = "Still working. Designing a part can take up to a minute.";
+  }, 6000);
   try {
     const data = await post("/api/chat", { session_id: sessionId, message: text });
     status.remove();
-    data.bubbles.forEach(showBubble);
+    const shown = data.bubbles.map(showBubble);
+    if (shown.length) scrollToStart(shown[0]);
   } catch (e) {
     status.remove();
     add("note", escapeHtml(e.message));
