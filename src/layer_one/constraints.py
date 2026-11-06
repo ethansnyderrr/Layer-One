@@ -19,15 +19,15 @@ PRINTERS = {
     },
     "Bambu X1C": {
         "build_mm": (256, 256, 256),
-        "materials": ["PLA"],  # Q7 open: PLA-only at Rodgers is implied, not stated
+        "materials": ["PLA"],  # Rodgers 3D Studio page lists PLA only
         "tiers": [(30, 3.00), (61, 6.00), (120, 11.00)],
         "per_gram": 0.09,
-        "plate_fee": 0.00,  # Q1 open: may be $8
+        "plate_fee": 0.00,  # the $8 plate fee is listed only under the Stratasys
     },
     "Stratasys F270": {
         "build_mm": (305, 254, 305),
         "materials": ["ABS"],
-        "tiers": [(30, 5.00), (61, 10.00), (120, 20.00)],
+        "tiers": [(30, 5.00), (61, 10.00), (120, 20.00)],  # Medium is 31-61 g, Large 62-120 g
         "per_gram": 0.16,
         "plate_fee": 8.00,
     },

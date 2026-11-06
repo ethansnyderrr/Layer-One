@@ -46,6 +46,21 @@ def price_text(low: float, high: float) -> str:
     return _money(low) if low == high else f"{_money(low)} to {_money(high)}"
 
 
+def printer_note(lib: str, printers: list[dict]) -> str:
+    """Which printer would print it at this library, in words a first-timer can follow."""
+    if len(printers) > 1:
+        names = " and ".join(f"the {p['printer']} ({p['material']})" for p in printers)
+        return (f"{lib} has two printers that could print this: {names}. Staff choose which one "
+                "runs the job, so the price depends on which they use.")
+    p = printers[0]
+    note = f"At {lib}, this would print on the {p['printer']} in {p['material']}."
+    fee = PRINTERS[p["printer"]]["plate_fee"]
+    if fee:
+        note += (" That printer costs more per tier than the others and adds a plate fee of "
+                 f"${fee:.0f} to every job.")
+    return note
+
+
 def library_options(volume_mm3, area_mm2, extents_mm, material=None, color=None, preferred=None) -> dict:
     """Which libraries can print this, at what estimated price, and which to recommend."""
     options, excluded = [], []
@@ -80,6 +95,7 @@ def library_options(volume_mm3, area_mm2, extents_mm, material=None, color=None,
                 "price_low": low,
                 "price_high": high,
                 "price_text": price_text(low, high),
+                "printer_note": printer_note(lib, printers),
                 "colors_in_stock": {p["material"]: info["colors"][p["material"]] for p in printers},
                 "turnaround": info["turnaround"],
                 "contact": info["contact"],

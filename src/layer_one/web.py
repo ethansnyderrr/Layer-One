@@ -44,38 +44,8 @@ def get_client():
     return app.state.client
 
 
-def design_links(design: dict) -> dict:
-    """URLs for the page. Found models have no .scad, and carry their source for credit."""
-    design_id = design["id"]
-    links = {"id": design_id, "preview": f"/files/{design_id}/preview", "stl": f"/files/{design_id}/stl"}
-    if (OUTPUT_DIR / design_id / "model.scad").is_file():
-        links["scad"] = f"/files/{design_id}/scad"
-    source = design.get("source")
-    if source and _thingiverse_url(source.get("url")):
-        links["source"] = {k: str(source.get(k, "")) for k in ("name", "creator", "url", "license", "file")}
-    return links
-
-
-def _thingiverse_url(url) -> bool:
-    """Third-party links and images only render if they point at Thingiverse."""
-    return isinstance(url, str) and url.startswith(("https://www.thingiverse.com/", "https://cdn.thingiverse.com/"))
-
-
-def search_cards(results: list) -> list:
-    cards = []
-    for i, r in enumerate(results, 1):
-        if not _thingiverse_url(r.get("url")):
-            continue
-        cards.append({
-            "number": i,
-            "name": str(r.get("name", "")),
-            "creator": str(r.get("creator", "")),
-            "url": r["url"],
-            "image": r.get("image") if _thingiverse_url(r.get("image")) else "",
-            "license": str(r.get("license", "")),
-            "likes": int(r.get("likes") or 0),
-        })
-    return cards
+def design_links(design_id: str) -> dict:
+    return {"id": design_id, **{kind: f"/files/{design_id}/{kind}" for kind in FILES}}
 
 
 @app.get("/")
@@ -123,12 +93,7 @@ def chat(body: ChatIn):
         session["lock"].release()
 
     return {"bubbles": [
-        {
-            "text": b["text"],
-            "designs": [design_links(d) for d in b["designs"]],
-            "searches": [search_cards(results) for results in b["searches"]],
-        }
-        for b in bubbles
+        {"text": b["text"], "designs": [design_links(d) for d in b["designs"]]} for b in bubbles
     ]}
 
 
