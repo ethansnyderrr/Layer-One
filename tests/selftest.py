@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from layer_one.tools import cost, generate  # noqa: E402
+from layer_one.tools import cost, generate, search  # noqa: E402
 
 failures = 0
 
@@ -57,6 +57,14 @@ expect("unused measurement caught", generate.unused_variables(skipped), ["hole_d
 expect("multi-line call args ignored", generate.unused_variables("w = 3;\ncylinder(\n  d = 2,\n  h = w);\n"), [])
 dims = generate.dimensions(skipped)
 expect("assumed values flagged", [(d["name"], d["assumed"]) for d in dims], [("hole_d", True), ("width", False)])
+
+# 5. Thingiverse license rules (docs/library-constraints.md, Section 7)
+expect("CC Attribution is ok", search.license_status("Creative Commons - Attribution"), "ok")
+expect("CC NC is ok (no selling anyway)", search.license_status("Creative Commons - Attribution - Non-Commercial"), "ok")
+expect("No Derivatives prints as-is", search.license_status("Creative Commons - Attribution - No Derivatives"), "ok_no_changes")
+expect("public domain is ok", search.license_status("Creative Commons - Public Domain Dedication"), "ok")
+expect("all rights reserved goes to staff", search.license_status("All Rights Reserved"), "staff_review")
+expect("missing license goes to staff", search.license_status(""), "staff_review")
 
 print(f"\n{'All checks passed.' if not failures else f'{failures} check(s) FAILED.'}")
 sys.exit(1 if failures else 0)

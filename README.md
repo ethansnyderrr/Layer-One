@@ -18,7 +18,7 @@ Claude runs the conversation and decides when to call a tool. The tools make the
 | Swimlane step | Where it lives |
 |---|---|
 | Request allowed? | `src/layer_one/prompts/layer_one.md` (library rules) |
-| Search approved 3D model sites | `src/layer_one/tools/search.py` (not built yet) |
+| Search approved 3D model sites | `src/layer_one/tools/search.py` (Thingiverse API; GrabCAD has no public API) |
 | Generate file and preview | `src/layer_one/tools/generate.py` (Claude writes OpenSCAD, rendered to STL) |
 | Check size, STL, and printer fit | `src/layer_one/tools/printability.py` (trimesh) |
 | Estimate cost, recommend a library | `src/layer_one/tools/cost.py` |
@@ -37,7 +37,7 @@ Python, Anthropic API (tool use), FastAPI, OpenSCAD, trimesh. Prototype hosted o
 ## Setup
 1. Install OpenSCAD (`apt install openscad` on Debian).
 2. `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
-3. Copy `.env.example` to `.env` and add your Anthropic API key. Never commit `.env`.
+3. Copy `.env.example` to `.env` and add your Anthropic API key and Thingiverse App Token (from thingiverse.com/apps/create). Never commit `.env`.
 
 ## Run
 - `python web.py`: start the web version, then open `http://<server IP>:8000`. Shows the preview and download buttons for each design.
@@ -49,6 +49,6 @@ Python, Anthropic API (tool use), FastAPI, OpenSCAD, trimesh. Prototype hosted o
 - [x] Generation spike (text → OpenSCAD → STL → preview → checks)
 - [x] Terminal chat with design, checks, pricing, and library recommendation
 - [x] Web chat page with preview picture and .stl/.scad downloads
-- [ ] Model search
+- [x] Model search (Thingiverse)
 - [ ] Upright preview and spinnable 3D viewer
 - [ ] Always-on hosting on the homelab (fixed IP, starts on boot)
