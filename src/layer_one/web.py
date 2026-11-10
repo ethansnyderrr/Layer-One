@@ -1,15 +1,19 @@
 """Layer One web app. Run from the repo root with: python web.py"""
 
+import hashlib
+import hmac
+import os
 import re
 import threading
+import time
 import traceback
 import uuid
 from pathlib import Path
 
 import anthropic
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
 from layer_one.chat import GREETING, new_conversation, run_turn
@@ -28,6 +32,61 @@ FILES = {
 app = FastAPI(title="Layer One")
 app.state.client = None
 sessions: dict[str, dict] = {}  # kept in memory; restarting the server clears them
+
+# --- Password ---------------------------------------------------------------------
+# The password lives only in .env (LAYER_ONE_PASSWORD), never in this public repo.
+COOKIE = "layer_one_auth"
+OPEN_PATHS = {"/login", "/api/login"}
+
+
+def _password() -> str:
+    return os.getenv("LAYER_ONE_PASSWORD", "")
+
+
+def _token(password: str) -> str:
+    """What the login cookie holds: proof of the password, not the password itself."""
+    return hmac.new(password.encode(), b"layer-one-session", hashlib.sha256).hexdigest()
+
+
+def _signed_in(request: Request) -> bool:
+    password = _password()
+    if not password:
+        return True  # no password set: the site is open
+    return hmac.compare_digest(request.cookies.get(COOKIE, ""), _token(password))
+
+
+if not _password():
+    print("[layer-one] WARNING: LAYER_ONE_PASSWORD isn't set in .env, so the site has no password.")
+
+
+@app.middleware("http")
+async def require_password(request: Request, call_next):
+    if request.url.path in OPEN_PATHS or _signed_in(request):
+        return await call_next(request)
+    if request.url.path == "/":
+        return RedirectResponse("/login", status_code=303)
+    return JSONResponse({"detail": "Please sign in again."}, status_code=401)
+
+
+class LoginIn(BaseModel):
+    password: str
+
+
+@app.get("/login")
+def login_page():
+    return FileResponse(STATIC / "login.html")
+
+
+@app.post("/api/login")
+def login(body: LoginIn):
+    password = _password()
+    if password and not hmac.compare_digest(body.password.encode(), password.encode()):
+        time.sleep(1)  # slows down guessing
+        raise HTTPException(401, "That password isn't right.")
+    response = JSONResponse({"ok": True})
+    if password:
+        response.set_cookie(COOKIE, _token(password), max_age=30 * 24 * 3600, httponly=True, samesite="lax")
+    return response
 
 
 class ChatIn(BaseModel):

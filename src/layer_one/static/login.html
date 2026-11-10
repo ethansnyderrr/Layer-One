@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layer One: sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --crimson: #9e1b32;
+    --crimson-text: #9e1b32;
+    --ink: #1f2328;
+    --muted: #5b6168;
+    --paper: #f6f7f8;
+    --surface: #ffffff;
+    --line: #d5d9dd;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --crimson: #b8263f;
+      --crimson-text: #ef7d8f;
+      --ink: #e8eaed;
+      --muted: #a3a9b0;
+      --paper: #16181b;
+      --surface: #1e2125;
+      --line: #383d43;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    background: var(--paper); color: var(--ink);
+    font: 17px/1.55 "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
+  .layers { display: flex; flex-direction: column-reverse; gap: 3px; width: 110px; margin: 0 0 12px; }
+  .layers span { height: 3px; border-radius: 2px; background: var(--crimson); }
+  .layers span:nth-child(2) { opacity: .75; width: 96%; }
+  .layers span:nth-child(3) { opacity: .5; width: 90%; }
+  .layers span:nth-child(4) { opacity: .3; width: 82%; }
+  h1 { margin: 0; font-size: 28px; line-height: 1.1; }
+  p { margin: 4px 0 20px; color: var(--muted); font-size: 15px; }
+  label { display: block; font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  input {
+    width: 100%; font: inherit; color: var(--ink); background: var(--paper);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  button {
+    width: 100%; margin-top: 14px; font: inherit; font-weight: 700; color: #fff;
+    background: var(--crimson); border: 0; border-radius: 10px; padding: 10px 20px; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  .error { min-height: 1.5em; margin: 10px 0 0; color: var(--crimson-text); font-size: 15px; }
+  :focus-visible { outline: 3px solid var(--crimson-text); outline-offset: 2px; }
+  input:focus-visible { outline: 2px solid var(--crimson-text); outline-offset: 0; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="layers" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+  <h1>Layer One</h1>
+  <p>Your guide to 3D printing at UA Libraries</p>
+  <form id="login">
+    <label for="password">Password</label>
+    <input id="password" type="password" autocomplete="current-password" required autofocus>
+    <button id="enter" type="submit">Enter</button>
+    <div class="error" id="error" role="alert"></div>
+  </form>
+</main>
+<script>
+document.getElementById("login").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = document.getElementById("enter");
+  const error = document.getElementById("error");
+  button.disabled = true;
+  error.textContent = "";
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: document.getElementById("password").value }),
+    });
+    if (res.ok) {
+      window.location.href = "/";
+      return;
+    }
+    const data = await res.json().catch(() => ({}));
+    error.textContent = data.detail || "Couldn't sign in. Try again.";
+  } catch (e) {
+    error.textContent = "The server didn't respond. Check that Layer One is running.";
+  }
+  button.disabled = false;
+});
+</script>
+</body>
+</html>

@@ -38,7 +38,7 @@ Python, Anthropic API (tool use), FastAPI, OpenSCAD, trimesh. Prototype hosted o
 ## Setup
 1. Install OpenSCAD (`apt install openscad` on Debian).
 2. `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
-3. Copy `.env.example` to `.env` and add your Anthropic API key. Never commit `.env`.
+3. Copy `.env.example` to `.env` and add your Anthropic API key and a site password (`LAYER_ONE_PASSWORD`). Never commit `.env`.
 
 ## Run
 - `python web.py`: start the web version, then open `http://<server IP>:8000`. Shows the preview and download buttons for each design.
