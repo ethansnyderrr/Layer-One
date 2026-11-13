@@ -86,6 +86,8 @@
   .dl small { font-size: 13px; }
   .dl.primary { background: var(--crimson); color: #fff; }
   .dl.secondary { color: var(--crimson-text); }
+  .dl.submit { background: var(--crimson); color: #fff; box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--crimson); }
+  .check { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
 
   footer { border-top: 1px solid var(--line); background: var(--surface); padding: 12px 0 16px; }
   form { display: flex; gap: 10px; align-items: flex-end; }
@@ -153,11 +155,15 @@ function previewHtml(d) {
   </figure>`;
 }
 
+const SUBMIT_URL = "https://bama.atlassian.net/servicedesk/customer/portal/179";
+
 function downloadsHtml(d) {
   return `<div class="downloads">
-    <a class="dl primary" href="${d.stl}" download><strong>Download .stl</strong><small>The file you submit</small></a>
+    <a class="dl primary" href="${d.stl}" download><strong>1. Download .stl</strong><small>The file you submit</small></a>
+    <a class="dl submit" href="${SUBMIT_URL}" target="_blank" rel="noopener"><strong>2. Submit to UA Libraries</strong><small>Upload your .stl here</small></a>
     <a class="dl secondary" href="${d.scad}" download><strong>Download .scad</strong><small>The editable design</small></a>
-  </div>`;
+  </div>
+  <p class="check">Check the measurements above before you download. Prices are estimates; library staff confirm the final cost.</p>`;
 }
 
 function showBubble(b) {
